@@ -102,14 +102,14 @@ extracts leaf-root paths from the operator tree to represent structural informat
 An example of a math expression operator tree representation and its extracted leaf-root paths 
 is illustrated in (1) and (2) of Figure~\ref{oprtreeExample}.
 The intuition is that no matter how operands are ordered, an operator tree uniquely determines 
-the leaf-node paths decomposed from the tree. 
-This property implies we can use leaf-root paths from operator tree as indices or keys to retrieve math expressions (as previously proposed by \cite{signifjap,MathMLleafroot,signfused}) in which a large portion of commutative operators is present.
+the leaf-root paths decomposed from the tree. 
+This property implies the advantage to use leaf-root paths from operator tree as indices or keys to retrieve math expressions (as previously proposed by \cite{signifjap,MathMLleafroot,signfused}) in which a large portion of commutative operators is present.
 Built on top of this idea, {\em OPMES} further constructs a global tree index from all indexed math expressions,
 by continuously inserting tokenized leaf-root paths into this persistent tree index, as shown by figure~\ref{oprtreeExample} (3).
 Using this index, {\em OPMES} is able to search for structurally relevant expressions efficiently 
 through a pruning method. 
 %The intuition behind this index and the pruning method are explained in the next section.
-When searching, {\em OPMES} evaluates symbolic similarity between query and document expressions to finally rank search results based on symbol set similarity. 
+Then, {\em OPMES} evaluates symbolic similarity between query and document expressions to finally rank search results based on symbol set similarity. 
 %because math semantics require us to consider symbolic value of expressions, 
 For example, $E=mc^2$ is considered more meaningful when exact symbols are used rather than just being structurally identical with $y=ax^2$.
 We also need to rank documents higher if they are \textit{$\alpha$-equivalent} to query,
@@ -184,7 +184,7 @@ Moreover, if all query leaf-root paths can go one deeper level in the index tree
 % However, the expressions that OPMES searcher finds are not necessarily in sub-expression relation with query operator tree. Simply because the same leaf-root path set can represent different operator tree (as the case shown in figure~\ref{notnecessary}), thus a set of query paths may get differently structured search results. 
 % To reduce the possibility of such cases, we further divide children nodes of each node, into a number of subdirectories identified by their degree (or number of children) of their corresponding node in operator tree.
 % The searcher will not go into a subdirectory where its corresponding query path node has a greater degree number than that of its index tree node.
-The second step is to rank all the structurally relevant expression identified in the first step 
+The second step is to rank all the structurally relevant expressions identified in the first step 
 based on their symbolic similarities with the query.  
 The scoring algorithm \textproc{Mark and Cross}, 
 which addresses both symbol set equivalence and $\alpha$-equivalence, is fully explained in 
@@ -192,7 +192,7 @@ the first author's master thesis~\cite{mythesis}.
 
 \section{Demonstration Plan}
 In our demo, we first illustrate some key ideas mentioned above.
- We will choose a simple query, show its operator tree representation in ASCII graph as well as its sub-paths (through the output of parser).
+ We will choose a simple query, show its operator tree representation in ASCII graph as well as its leaf-root paths (through the output of parser).
  Then we demonstrate the structure of our index tree, and walk through the steps and directories where the searcher goes and finds relevant expressions for input query.
  Users are invited to enter queries and experience our search engine based on a collection (with over 8 million math expressions scrawled from Math Stack Exchange website) that contains most frequently used and elementary math expressions.
 %Next we will make a comparison between OPMES and another similar search engine Tangent.
