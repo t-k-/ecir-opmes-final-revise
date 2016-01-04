@@ -151,7 +151,7 @@ parser, indexer and searcher.
 {\em OPMES} parser is responsible to extract math mode \LaTeX\ markups from HTML files. 
 A LALR (look-ahead LR) parser implemented by Bison/Flex is used to transform math mode \LaTeX\ markup into in-memory operator tree from bottom up.
 %There are some special transformations to be done during the parsing process:
-In the case of constructing an operator tree with a commutative nodes, if a commutative node also has a father operator who is also commutative, the node will pass its children to its father and delete itself (see (1) of figure~\ref{op_tr_trans}) so that we make sure any sub-expression also represents a subtree in operator tree.
+In the case of constructing an operator tree with a commutative nodes, if a commutative node has a father operator who is also commutative, the node will pass its children to its father and delete itself (see (1) of figure~\ref{op_tr_trans}) so that we make sure any sub-expression also represents a subtree in operator tree.
 On the other hand, when an operator tree of non-commutative node is constructed, it will insert different pseudo nodes (in our implementation we use the rank of the corresponding child) on top of its children (see (2) of figure~\ref{op_tr_trans}) to distinguish their operands order in generated leaf-root paths.
 
 The indexer then uses this operator tree to extract leaf-root paths.
@@ -162,7 +162,7 @@ The indexer also attaches (appends) an expression ID (or exprID) to the bottom n
 For implementation simplicity, we use file system directories to realize the index tree, the path name of each directory corresponds to a tokenized leaf-root path, and the posting list file of each node is stored at corresponding directory which represents the node it belongs to (every node has only one posting file).
 
 OPMES searcher takes a query, parses it into operator tree, and decomposes the operator tree into leaf-root paths.
-Query processing step is divided into two stages.  The first stage is to search for strucually relevant expressions. 
+Query processing step is divided into two stages.  The first stage is to search for structurally relevant expressions. 
 Instead of searching each leaf-root path one by one, the searcher searches simultaneously along the way of all leaf-root paths in the index tree, and merges the exprIDs from posting lists in all the corresponding directories of the query paths.
 Moreover, if all query leaf-root paths can go one deeper level in the index tree, and the deeper level nodes have a common node (with the same tokenized name), the searcher will simultaneously go into the common node from all query paths and merge the posting lists under that common directory.  This process is repeated recursively to prune indexes (directories) that are not common at the deeper level.
 % \begin{figure}
@@ -184,10 +184,10 @@ Moreover, if all query leaf-root paths can go one deeper level in the index tree
 % However, the expressions that OPMES searcher finds are not necessarily in sub-expression relation with query operator tree. Simply because the same leaf-root path set can represent different operator tree (as the case shown in figure~\ref{notnecessary}), thus a set of query paths may get differently structured search results. 
 % To reduce the possibility of such cases, we further divide children nodes of each node, into a number of subdirectories identified by their degree (or number of children) of their corresponding node in operator tree.
 % The searcher will not go into a subdirectory where its corresponding query path node has a greater degree number than that of its index tree node.
-The second step is to rank all the structually relevant expression identified in the first step 
+The second step is to rank all the structurally relevant expression identified in the first step 
 based on their symbolic similarities with the query.  
 The scoring algorithm \textproc{Mark and Cross}, 
-which addresses both symbol set equivalence and $\alpha$-equivalence, is explained in 
+which addresses both symbol set equivalence and $\alpha$-equivalence, is fully explained in 
 the first author's master thesis~\cite{mythesis}.
 
 \section{Demonstration Plan}
