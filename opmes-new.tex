@@ -1,0 +1,220 @@
+\documentclass{llncs}
+%
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage[noend]{algpseudocode}% http://ctan.org/pkg/algorithmicx
+
+\usepackage{array}
+\makeatletter
+\newcommand{\thickhline}{%
+    \noalign {\ifnum 0=`}\fi \hrule height 1pt
+    \futurelet \reserved@a \@xhline
+}
+\newcolumntype{"}{@{\hskip\tabcolsep\vrule width 1pt\hskip\tabcolsep}}
+\makeatother
+
+\renewcommand{\arraystretch}{1.6}
+\setlength{\tabcolsep}{12pt}
+
+\usepackage{graphicx}
+
+\usepackage{verbatim}
+
+\begin{document}
+\title{OPMES: A similarity search engine for mathematical content}
+\author{Wei Zhong and Hui Fang}
+\institute{University of Delaware, Newark, DE, USA \\
+\email{\{zhongwei, hfang\}@udel.edu}}
+\maketitle
+%
+\begin{abstract}
+This paper presents details about a new mathematical search engine, 
+i.e., {\em OPMES}. This search engine leverages operator trees 
+in both representation and relevance modeling of the mathematical 
+content. More specifically, {\em OPMES} represents
+mathematical expressions using operator trees, and then 
+indexes each expression based on all the leaf-root paths of the generated
+operator tree.  Such data structures enable {\em OPMES} to implement an 
+efficient two-stage query processing technique. The system first 
+identifies structurally relevant expressions based on the matching of the 
+leaf-root paths, and then further rank them based on their symbolic
+similarity to the query. 
+\end{abstract}
+
+\section{Introduction}
+
+Mathematical content is widely used in technical documents such as 
+the publications and course materials from STEM fields. 
+To better utilize such a valuable digitalized mathematical asset, 
+it is important to offer search users the ability to find similar 
+mathematical expressions. For example, some students may want to collect
+additional information about the formula that they have learned in 
+the class, and others may want to find an existing proof for an equation. 
+Unfortunately, major search engines do not support the similarity-based
+search for mathematical content.  
+
+The goal of this paper is to present our efforts on developing 
+{\em OPMES} (Operator-tree Pruning based Math Expression Search), 
+a similarity-based search engine for mathematical content. 
+Given a query written as a mathematical expression, 
+the system will return a ranked list of relevant math expressions 
+from the underlying math collections. 
+
+Compared with existing mathematical search systems, such as 
+MIaS~\footnote{\url{https://mir.fi.muni.cz/mias/}}, 
+Tangent\footnote{\url{http://saskatoon.cs.rit.edu/tangent/random}},
+and Zentralblatt math from Math Web Search~\footnote{\url{http://search.mathweb.org}} (MWS), 
+the developed {\em OPMES} is unique in that operator trees
+\cite{goodsurvey} are 
+leveraged in all the system components to enable efficient 
+and effective search. 
+
+
+\begin{figure}
+
+\begin{minipage}[b]{1.2in}
+\begin{center}
+\includegraphics[height=1.1in]{res/leafroottree.eps}
+\end{center}
+(1) Operator tree representation of math expression $k(y + 2)$.
+\end{minipage}
+\hspace*{0.3in}
+\begin{minipage}[b]{1.2in}
+\begin{center}
+\includegraphics[height=1.1in]{res/leafrootpath.eps}
+\end{center}
+(2) Leaf-root paths generated from the operator tree.
+\end{minipage}
+\hspace*{0.3in}
+\begin{minipage}[b]{1.4in}
+\begin{center}
+\includegraphics[height=1.6in]{res/invert-tree.eps}
+\end{center}
+(3) Tree index (after tokenizing)
+\end{minipage}
+
+\caption{Operator tree index example}\label{oprtreeExample}
+\end{figure}
+More specifically, 
+{\em OPMES} parses an math expression into an operator tree, and then 
+extracts leaf-root paths from the operator tree to represent structural information.
+An example of a math expression operator tree representation and its extracted leaf-root paths 
+is illustrated in (1) and (2) of Figure~\ref{oprtreeExample}.
+The intuition is that no matter how operands are ordered, an operator tree uniquely determines 
+the leaf-node paths decomposed from the tree. 
+This property implies we can use leaf-root paths from operator tree as indices or keys to retrieve math expressions (as previously proposed by \cite{signifjap,MathMLleafroot,signfused}) in which a large portion of commutative operators is present.
+Built on top of this idea, {\em OPMES} further constructs a global tree index from all indexed math expressions,
+by continuously inserting tokenized leaf-root paths into this persistent tree index, as shown by figure~\ref{oprtreeExample} (3).
+Using this index, {\em OPMES} is able to search for structurally relevant expressions efficiently 
+through a pruning method. 
+%The intuition behind this index and the pruning method are explained in the next section.
+When searching, {\em OPMES} evaluates symbolic similarity between query and document expressions to finally rank search results based on symbol set similarity. 
+%because math semantics require us to consider symbolic value of expressions, 
+For example, $E=mc^2$ is considered more meaningful when exact symbols are used rather than just being structurally identical with $y=ax^2$.
+We also need to rank documents higher if they are \textit{$\alpha$-equivalent} to query,
+since changes of symbols in an expression preserve more syntactic similarity when these changes are made by substitution, e.g. for query $x(1+x)$, expression $a(1+a)$ are considered more relevant than $a(1+b)$. 
+
+
+The demo page of the {\em OPMS} is avaialble at
+\url{http://tkhost.github.io/opmes}, and the source code can be downloaded 
+at \url{https://github.com/t-k-/OPMES}. Students or scholars who have the 
+need to search mathematical Q\&A website or math-content articles are potential 
+users of our search engine.
+
+
+\section{System Description}
+We now provide the details for three major components in our system: 
+parser, indexer and searcher.
+
+\begin{figure}
+\begin{minipage}[b]{2.2in}
+\begin{center}
+{\includegraphics[height=1.0in]{res/pass-son}}
+\hspace*{0.2in}
+{\includegraphics[height=0.7in,width=1.0in]{res/pass-son2}}
+\\ (1) Commutative operator tree transformation for $a+b+c$. 
+\end{center}
+\end{minipage}
+\hspace*{0.2in}
+\begin{minipage}[b]{2.2in}
+\begin{center}
+{\includegraphics[height=0.7in,width=0.7in]{res/non-comm}}
+\hspace*{0.2in}
+{\includegraphics[height=1.0in]{res/non-comm2}}
+\\ (2) Non-commutative operator tree transformation for $\frac a b$. 
+\end{center}
+\end{minipage}
+\caption{Operator tree transformation example}\label{op_tr_trans}
+\end{figure}
+
+{\em OPMES} parser is responsible to extract math mode \LaTeX\ markups from HTML files. 
+A LALR (look-ahead LR) parser implemented by Bison/Flex is used to transform math mode \LaTeX\ markup into in-memory operator tree from bottom up.
+%There are some special transformations to be done during the parsing process:
+In the case of constructing an operator tree with a commutative nodes, if a commutative node also has a father operator who is also commutative, the node will pass its children to its father and delete itself (see (1) of figure~\ref{op_tr_trans}) so that we make sure any sub-expression also represents a subtree in operator tree.
+On the other hand, when an operator tree of non-commutative node is constructed, it will insert different pseudo nodes (in our implementation we use the rank of the corresponding child) on top of its children (see (2) of figure~\ref{op_tr_trans}) to distinguish their operands order in generated leaf-root paths.
+
+The indexer then uses this operator tree to extract leaf-root paths.
+Note that a subtree of an operator tree (corresponding to a subexpression) would have its leaf-root paths being prefix of some leaf-root paths from this operator tree. 
+To show this, use the same example in figure~\ref{oprtreeExample}, in which $k(y + 2)$ has a leaf-root path set $A = \{ k \times, y + \times, 2 + \times \}$, while the subexpression $y + 2$ has a leaf-root path set $B = \{ y +, 2 +\}$ where each element is prefix of $A$'s subset $\{y + \times, 2 + \times \}$ respectively.
+OPMES indexer therefore tokenizes and inserts leaf-root paths into a ``prefix tree" index as shown in figure~\ref{oprtreeExample} (3), to speed the lookup for another similar leaf-root path.
+The indexer also attaches (appends) an expression ID (or exprID) to the bottom node (of the newly inserted leaf-root path) every time a tokenized leaf-root path is inserted. In the case of figure~\ref{oprtreeExample} (3), all the three $\fbox{times}$ nodes are linked to a separate ``posting list", the new exprID is appended after each.
+For implementation simplicity, we use file system directories to realize the index tree, the path name of each directory corresponds to a tokenized leaf-root path, and the posting list file of each node is stored at corresponding directory which represents the node it belongs to (every node has only one posting file).
+
+OPMES searcher takes a query, parses it into operator tree, and decomposes the operator tree into leaf-root paths.
+Query processing step is divided into two stages.  The first stage is to search for strucually relevant expressions. 
+Instead of searching each leaf-root path one by one, the searcher searches simultaneously along the way of all leaf-root paths in the index tree, and merges the exprIDs from posting lists in all the corresponding directories of the query paths.
+Moreover, if all query leaf-root paths can go one deeper level in the index tree, and the deeper level nodes have a common node (with the same tokenized name), the searcher will simultaneously go into the common node from all query paths and merge the posting lists under that common directory.  This process is repeated recursively to prune indexes (directories) that are not common at the deeper level.
+% \begin{figure}
+% \begin{minipage}[b]{2.2in}
+% \begin{center}
+% \raisebox{.1in}{\includegraphics[height=1.2in,width=1.5in]{res/not-necessary}}
+% \\ expression $(a+b) \times (c+d) \times e$
+% \end{center}
+% \end{minipage}
+% \hspace*{.4in}
+% \begin{minipage}[b]{2.2in}
+% \begin{center}
+% \raisebox{.1in}{\includegraphics[height=1.2in,width=1.5in]{res/not-necessary2}}
+% \\ expression $(a+b+c+d) \times e$
+% \end{center}
+% \end{minipage}
+% \caption{Same leaf-root path set with different structure}\label{notnecessary}
+% \end{figure}
+% However, the expressions that OPMES searcher finds are not necessarily in sub-expression relation with query operator tree. Simply because the same leaf-root path set can represent different operator tree (as the case shown in figure~\ref{notnecessary}), thus a set of query paths may get differently structured search results. 
+% To reduce the possibility of such cases, we further divide children nodes of each node, into a number of subdirectories identified by their degree (or number of children) of their corresponding node in operator tree.
+% The searcher will not go into a subdirectory where its corresponding query path node has a greater degree number than that of its index tree node.
+The second step is to rank all the structually relevant expression identified in the first step 
+based on their symbolic similarities with the query.  
+The scoring algorithm \textproc{Mark and Cross}, 
+which addresses both symbol set equivalence and $\alpha$-equivalence, is explained in 
+the first author's master thesis~\cite{mythesis}.
+
+\section{Demonstration Plan}
+In our demo, we first illustrate some key ideas mentioned above.
+ We will choose a simple query, show its operator tree representation in ASCII graph as well as its sub-paths (through the output of parser).
+ Then we demonstrate the structure of our index tree, and walk through the steps and directories where the searcher goes and finds relevant expressions for input query.
+ Users are invited to enter queries and experience our search engine based on a collection (with over 8 million math expressions scrawled from Math Stack Exchange website) that contains most frequently used and elementary math expressions.
+%Next we will make a comparison between OPMES and another similar search engine Tangent.
+%We use the most recent Tangent source code~\footnote{\url{https://www.cs.rit.edu/~dprl/Software.html#tangent} (published at July 2015)}, 
+%both OPMES and Tangent will index an identical standard collection from NTCIR-11 Wiki Task~\cite{ov}.
+%In our observation,
+%OPMES are generally worse in effectiveness when querying expression containing wildcards, this is due to its lacking of wildcard support.
+%But there are queries such as fractions and determinants where OPMES can get better results than Tangent's.
+%As for query efficiency, we will show that OPMES has a much faster retrieval time for long queries compared to Tangent.
+
+\section{Conclusion and Future Work}
+
+The paper describes a new similarity-based mathematical search engine, i.e., {\em OPMES}. 
+Operator trees are used in almost all the system components to facilitate 
+the representation, query processing and relevance modeling of the mathematical content. 
+
+As for the future work, we plan to enhance the system with 
+MathML parser and wildcard support.  Moreover, we also plan to 
+integrate text search ability into our math-only search method. 
+Finally, equivalent math-expression transformations (such as $a+\frac 1 b = \frac{ab + 1}b$) can also be introduced into pre-query process to further improve the usefulness of math similarity search engine.
+
+\bibliographystyle{unsrt}
+\bibliography{mybib}
+
+\end{document}
